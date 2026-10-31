@@ -23,7 +23,7 @@ The scheduled job runs these tasks sequentially:
 2. ✅ **PI Distribution Indexer** - Checks for new PI CSVs on Arweave
 3. ✅ **ARIO Gateway Mainnet Indexer** - Indexes gateway actions for yesterday + today
 4. ✅ **CoinGecko Price Fetcher** - Fetches latest prices for AO and ARIO
-5. ✅ **Permaswap Price Scraper** - Fetches latest pool prices for AO, PI, and ARIO
+5. ✅ **Token price fetchers** - Updates AO, ARIO, PI, and related prices (CoinGecko / pool sources as configured)
 
 ## Schedule
 

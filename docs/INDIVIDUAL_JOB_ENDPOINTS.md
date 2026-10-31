@@ -4,10 +4,18 @@ This document describes the individual job endpoints that allow you to run speci
 
 ## Authentication
 
-All endpoints require authentication. Include the `Authorization` header with your API key:
+These routes use `isAuthorized`. Provide either:
+
+1. A valid subscription (`X-Wallet`, `X-Service`, `X-Year`), or
+2. Admin bypass: `X-Auth-Bypass: <ADMIN_AUTH_BYPASS_CODE>` **and** `X-Year` (still required by middleware)
+
+Example headers for local ops:
 
 ```
-Authorization: Bearer YOUR_API_KEY
+X-Auth-Bypass: YOUR_BYPASS
+X-Year: 2025
+X-Wallet: YOUR_WALLET
+X-Service: Distribution Report
 ```
 
 ## Distribution Indexers
@@ -20,7 +28,7 @@ Authorization: Bearer YOUR_API_KEY
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/ao-distributions \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### PI Distribution Indexer
@@ -31,7 +39,7 @@ curl -X POST http://localhost:3000/api/jobs/ao-distributions \
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/pi-distributions \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### ARIO Distribution Indexer
@@ -42,7 +50,7 @@ curl -X POST http://localhost:3000/api/jobs/pi-distributions \
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/ario-distributions \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### ARIO Gateway Mainnet Indexer
@@ -53,7 +61,7 @@ curl -X POST http://localhost:3000/api/jobs/ario-distributions \
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/ario-gateway-mainnet \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ## Price Fetchers
@@ -66,7 +74,7 @@ curl -X POST http://localhost:3000/api/jobs/ario-gateway-mainnet \
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/ao-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### ARIO Price Fetcher
@@ -77,7 +85,7 @@ curl -X POST http://localhost:3000/api/jobs/ao-prices \
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/ario-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### PI Price Fetcher
@@ -88,7 +96,7 @@ curl -X POST http://localhost:3000/api/jobs/ario-prices \
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/pi-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### AR Price Fetcher
@@ -99,7 +107,7 @@ curl -X POST http://localhost:3000/api/jobs/pi-prices \
 
 ```bash
 curl -X POST http://localhost:3000/api/jobs/ar-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ## Response Format
@@ -133,7 +141,7 @@ All individual jobs are tracked in the job status system. You can check the stat
 
 ```bash
 curl -X GET http://localhost:3000/api/status \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 The status will show:
@@ -150,15 +158,15 @@ The status will show:
 ```bash
 # AO distributions
 curl -X POST http://localhost:3000/api/jobs/ao-distributions \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 
 # PI distributions
 curl -X POST http://localhost:3000/api/jobs/pi-distributions \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 
 # ARIO distributions
 curl -X POST http://localhost:3000/api/jobs/ario-distributions \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### Run all price fetchers individually:
@@ -166,19 +174,19 @@ curl -X POST http://localhost:3000/api/jobs/ario-distributions \
 ```bash
 # AO prices
 curl -X POST http://localhost:3000/api/jobs/ao-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 
 # ARIO prices
 curl -X POST http://localhost:3000/api/jobs/ario-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 
 # PI prices
 curl -X POST http://localhost:3000/api/jobs/pi-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 
 # AR prices
 curl -X POST http://localhost:3000/api/jobs/ar-prices \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ### Run gateway indexer:
@@ -186,7 +194,7 @@ curl -X POST http://localhost:3000/api/jobs/ar-prices \
 ```bash
 # ARIO gateway mainnet indexer
 curl -X POST http://localhost:3000/api/jobs/ario-gateway-mainnet \
-  -H "Authorization: Bearer YOUR_API_KEY"
+  -H "X-Auth-Bypass: YOUR_BYPASS" -H "X-Year: 2025" -H "X-Wallet: YOUR_WALLET" -H "X-Service: Distribution Report"
 ```
 
 ## Benefits

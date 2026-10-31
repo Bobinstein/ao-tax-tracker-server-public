@@ -197,7 +197,7 @@ python3 -c "import pyspark, pyarrow, pandas; print('✅ All Python packages inst
 
 ```bash
 # Clone the repository to /opt for system-wide access
-sudo git clone https://github.com/Bobinstein/ao-tax-tracker-server.git /opt/ao-tax-tracker-server
+sudo git clone https://github.com/Bobinstein/ao-tax-tracker-server-public.git /opt/ao-tax-tracker-server
 cd /opt/ao-tax-tracker-server
 
 # Set proper ownership and permissions
@@ -218,16 +218,18 @@ cp env.example .env
 # Edit environment variables
 nano .env
 
-# Add these settings:
+# See env.example for the full list. Typical settings:
 # PORT=3000
 # CASSANDRA_HOST=localhost
 # CASSANDRA_DATACENTER=datacenter1
-# CASSANDRA_KEYSPACE_PRICE=ao_price_data
-# CASSANDRA_KEYSPACE_AO=ao_distributions
-# CASSANDRA_KEYSPACE_PI=pi_distributions
-# CASSANDRA_KEYSPACE_ARIO=ario_distributions
-# CASSANDRA_KEYSPACE_ARIO_GATEWAY=ario_gateway_history
+# COINGECKO_API_KEY=...
+# ADMIN_AUTH_BYPASS_CODE=...   # long random secret for ops/admin routes
+# STRIPE_SECRET_KEY=...        # optional
+# STRIPE_WEBHOOK_SECRET=...    # optional
+# MESSAGE_KEY_FILE=...         # optional AO signing wallet
+# API_BASE_URL=https://YOUR_SERVER_HOSTNAME
 ```
+
 
 ### 5.3 Test Database Connection
 

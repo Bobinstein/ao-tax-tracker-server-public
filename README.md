@@ -27,18 +27,34 @@ HTTP API server for comprehensive tax tracking in the Arweave/AO ecosystem. Supp
 ## Installation
 
 ```bash
+git clone https://github.com/Bobinstein/ao-tax-tracker-server-public.git
+cd ao-tax-tracker-server-public
+
 # Install dependencies
 yarn install
+# Or: npm install
 
-# Or using npm
-npm install
+# Configure environment (optional but recommended)
+cp env.example .env
 ```
+
+Requires a running Cassandra instance (default `localhost`). Schema/keyspaces are created automatically on server start.
 
 ## Configuration
 
-Database configuration is in `config/database.js`. Default settings:
+Copy `env.example` → `.env`. Common variables:
 
-- Cassandra host: `localhost`
+| Variable | Purpose |
+| -------- | ------- |
+| `PORT` | HTTP port (default `3000`) |
+| `API_BASE_URL` | Base URL for admin scripts / remote calls |
+| `COINGECKO_API_KEY` | Optional; better rate limits for prices |
+| `ADMIN_AUTH_BYPASS_CODE` | Ops bypass for `X-Auth-Bypass` (use a strong secret) |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Optional Stripe payments |
+| `MESSAGE_KEY_FILE` | Optional Arweave/AO signing wallet (path or JSON) |
+| `PAYMENT_PROCESS_ID` | Optional AO payment process override |
+
+Database defaults live in `config/database.js` (Cassandra host: `localhost`).
 
 **Keyspaces:**
 
@@ -49,17 +65,13 @@ Database configuration is in `config/database.js`. Default settings:
 | `pi_distributions`   | PI token distributions                                 |
 | `ario_distributions` | ARIO distributions + gateway actions                   |
 | `ar_tax_tracker`     | Unified transactions, tax lots, disposals, reports     |
+| `subscription_cache` | Paid-subscription authorization cache                  |
 
 ## CSV Data
 
-The repository includes pre-downloaded CSV distribution files (~531MB total) in the `data/` directory:
+AO/PI distribution CSVs are **downloaded at runtime** into `data/AO_csvs/` and `data/PI_csvs/` (gitignored). They are not shipped in the public repo.
 
-- `data/AO_csvs/` - AO distribution CSVs (~23MB)
-- `data/PI_csvs/` - PI distribution CSVs (~508MB)
-
-These files enable **faster deployment bootstrapping** by skipping the initial CSV download phase. The indexers will automatically use these files and check for any new distributions on Arweave.
-
-See [data/README.md](data/README.md) for more information about the CSV data structure and management.
+See [data/README.md](data/README.md) for layout and bootstrap notes.
 
 ## Usage
 
@@ -89,19 +101,15 @@ Server runs on `http://localhost:3000` by default. Set `PORT` environment variab
 - On server start, all required database tables are automatically created if they don't exist
 - No manual schema setup required for new deployments
 
-**One-time Setup:**
+**ARIO gateway indexing:**
 
-For ARIO gateway state tracking, you need to run the testnet indexer once to populate historical data:
+The mainnet gateway indexer runs on the built-in daily schedule. For a backfill or manual range:
 
 ```bash
-# Via API endpoint
-curl -X POST http://localhost:3000/api/jobs/index-ario-testnet
-
-# Or directly
-node src/indexers/ario_gateway_testnet_indexer.js
+node src/indexers/ario_gateway_mainnet_indexer.js 2025-10-01 2025-10-09
 ```
 
-This indexes all historical gateway actions from the AR.IO testnet (June 2024 - Feb 2025). The mainnet indexer runs automatically daily.
+See [docs/ARIO_GATEWAY_INTEGRATION.md](docs/ARIO_GATEWAY_INTEGRATION.md) and [GATEWAY_SNAPSHOT_README.md](GATEWAY_SNAPSHOT_README.md) for snapshot import options.
 
 ### Manual Data Updates
 
@@ -142,49 +150,47 @@ API information and available endpoints
 
 #### `POST /api/distributions/pdf`
 
-Generate PDF report for wallet distributions
+Generate PDF report for wallet distributions. **Date range is derived from `X-Year`** (client `startDate`/`endDate` are ignored).
+
+**Headers (required):** `X-Wallet`, `X-Service: Distribution Report`, `X-Year` — plus a valid subscription **or** `X-Auth-Bypass`.
 
 **Request Body:**
 
 ```json
 {
   "wallet": "7waR8v4STuwwcWw3l75CeAjeGHOwYb_p6vXL9K-WoKU",
-  "startDate": "2025-01-01",
-  "endDate": "2025-10-08",
-  "includeStaked": false
+  "includeStaked": false,
+  "currency": "USD"
 }
 ```
 
 **Parameters:**
 
 - `wallet` (required): Wallet address
-- `startDate` (required): Start date (YYYY-MM-DD)
-- `endDate` (required): End date (YYYY-MM-DD)
 - `includeStaked` (optional): Include staked ARIO distributions (default: false)
+- `currency` (optional): Fiat currency for valuations (default: USD)
 
 **Response:** PDF file download
 
 **Features:**
 
 - Combined AO, PI, and ARIO distributions
-- USD valuations with forward-fill pricing
+- USD (or other fiat) valuations with forward-fill pricing
 - Transaction details and totals
 - Data integrity notes for corrupted epochs (13, 14, 15)
 - Optional staked ARIO inclusion
 
+Ready-to-run examples: [scripts/CURL-TEST-COMMANDS.md](scripts/CURL-TEST-COMMANDS.md).
+
 #### `GET /api/distributions/:wallet`
 
-Get distribution data for a wallet
-
-**Query Parameters:**
-
-- `startDate` (required): Start date (YYYY-MM-DD)
-- `endDate` (required): End date (YYYY-MM-DD)
+Get distribution data for a wallet. Date range comes from `X-Year` (query date params ignored).
 
 **Example:**
 
 ```
-GET /api/distributions/7waR8v4STuwwcWw3l75CeAjeGHOwYb_p6vXL9K-WoKU?startDate=2025-01-01&endDate=2025-10-08
+GET /api/distributions/7waR8v4STuwwcWw3l75CeAjeGHOwYb_p6vXL9K-WoKU
+Headers: X-Wallet, X-Service: Distribution Report, X-Year: 2025
 ```
 
 **Response:**
@@ -597,21 +603,11 @@ The server includes indexers for tracking all gateway-related actions from both 
 
 ### Usage
 
-**Initial Setup (run once):**
+**Daily updates (automatic):** the mainnet gateway indexer runs with the built-in daily job (1 AM UTC).
+
+**Manual mainnet update:**
 
 ```bash
-# Index historical testnet data
-curl -X POST http://localhost:3000/api/jobs/index-ario-testnet
-```
-
-**Daily Updates (automatic):**
-
-The mainnet indexer runs automatically every day at 1 AM UTC, indexing yesterday's and today's actions.
-
-**Manual Mainnet Update:**
-
-```bash
-# Index specific date range
 node src/indexers/ario_gateway_mainnet_indexer.js 2025-10-01 2025-10-09
 ```
 
@@ -648,28 +644,20 @@ This ensures users are informed about data gaps while maintaining accurate repor
 
 ## Authorization
 
-All API endpoints include an `isAuthorized` middleware check. Currently configured to allow all requests.
+Protected routes use `isAuthorized` in `src/utils/auth.js`. Callers must provide:
 
-**To implement custom authorization:**
+| Header | Purpose |
+| ------ | ------- |
+| `X-Wallet` | Wallet being authorized |
+| `X-Service` | e.g. `Distribution Report` or `Full Tax Report` |
+| `X-Year` | Tax/subscription year (required; drives distribution date range) |
+| `X-Auth-Bypass` | Optional; must match `ADMIN_AUTH_BYPASS_CODE` to skip subscription checks |
 
-Edit `src/utils/auth.js` and implement your authorization logic in the `isAuthorized` function.
+Without bypass, authorization checks the AO payment process / Cassandra `subscription_cache` for an active subscription matching wallet + service + year. Full Tax Report subscriptions also authorize Distribution Report for that year.
 
-Example:
+Admin-only routes use `isAdmin` (bypass code only). Prefer a strong random bypass in any non-local environment; never commit real values.
 
-```javascript
-function isAuthorized(req, res, next) {
-  const apiKey = req.headers["x-api-key"];
-
-  if (!apiKey || apiKey !== process.env.API_KEY) {
-    return res.status(403).json({
-      error: "Forbidden",
-      message: "Invalid or missing API key",
-    });
-  }
-
-  next();
-}
-```
+See [scripts/CURL-TEST-COMMANDS.md](scripts/CURL-TEST-COMMANDS.md) for full examples.
 
 ## Price Data Sources
 
@@ -687,53 +675,22 @@ If no price exists for a specific date, the API automatically uses the most rece
 
 ```
 ao-tax-tracker-server/
-├── config/
-│   ├── database.js              # Database configuration (all keyspaces)
-│   └── ar-tracker-constants.js  # AR Tracker token constants
-├── data/                        # CSV distribution data (~531MB)
-│   ├── AO_csvs/                # AO distribution CSVs (~23MB)
-│   └── PI_csvs/                # PI distribution CSVs (~508MB)
+├── config/                      # Cassandra + AR Tracker constants
+├── data/                        # Runtime CSV dirs (gitignored) + gateway snapshot
 ├── src/
-│   ├── indexers/                # Distribution & price indexers
-│   │   ├── ao_distribution_indexer_cassandra.js
-│   │   ├── pi_distribution_indexer_cassandra.js
-│   │   └── dex_price_indexer.js   # DEX swap price indexer
-│   ├── fetchers/                # Price & transaction fetchers
-│   │   ├── ao_price_history_fetcher.js
-│   │   ├── permaswap_price_scraper.js
-│   │   ├── permaswap_historical_gql_fetcher.js
-│   │   └── ar-tracker/          # AR Tracker fetchers
-│   │       ├── AOTokenTransferFetcher.js
-│   │       └── DEXSwapFetcher.js
-│   ├── services/                # Business logic
-│   │   ├── wallet_distribution_pdf_generator.js
-│   │   ├── wallet_distribution_csv_generator.js
-│   │   └── ar-tracker/          # AR Tracker services
-│   │       ├── CassandraArTrackerService.js  # DB operations
-│   │       ├── CostBasisService.js           # FIFO/LIFO/HIFO
-│   │       ├── PriceService.js               # Multi-source prices
-│   │       ├── FiatConversionService.js      # USD to fiat
-│   │       ├── UnifiedWalletHistoryService.js
-│   │       ├── DistributionService.js
-│   │       ├── TaxReportGenerator.js         # PDF reports
-│   │       └── ... (13 services total)
-│   ├── models/                  # Data models
-│   │   └── ar-tracker/
-│   │       ├── UnifiedTransaction.js
-│   │       ├── TaxLot.js
-│   │       └── ... (5 models)
-│   └── utils/                   # Utilities
-│       └── auth.js              # Authorization middleware
-├── admin-utilities/             # Admin scripts
-│   └── init-ar-tracker-schema.js # Schema initialization
-├── jobs/                        # Background job scripts
-│   ├── update-distributions.js
-│   ├── update-prices.js
-│   └── update-all.js
-├── server.js                    # Main HTTP server
-├── package.json
-├── README.md                    # This file
-└── docs/                        # Additional documentation
+│   ├── indexers/                # AO/PI/ARIO/PIXL/DEX indexers
+│   ├── fetchers/                # Price fetchers + ar-tracker fetchers
+│   ├── services/                # PDF/CSV, Stripe, AR Tracker tax services
+│   ├── models/ar-tracker/       # Transaction / lot models
+│   ├── middleware/              # Honeypot / scanner traps
+│   └── utils/auth.js            # Subscription + admin bypass middleware
+├── admin-utilities/             # Schema, backups, clears, diagnostics
+├── jobs/                        # CLI update-distributions / prices / all
+├── scripts/                     # Ops helpers + curl examples
+├── docs/                        # Deployment and integration guides
+├── env.example
+├── server.js
+└── package.json
 ```
 
 ## Development
@@ -752,18 +709,11 @@ yarn update-all
 ## Production Deployment
 
 1. Install dependencies: `yarn install --production`
-2. Configure environment variables (if needed)
-3. Start server: `yarn start`
-4. Set up cron jobs for automatic updates:
+2. Copy `env.example` → `.env` and set secrets (`ADMIN_AUTH_BYPASS_CODE`, Stripe, wallet, etc.)
+3. Start server: `yarn start` (built-in cron handles daily/hourly jobs)
+4. Optional: reverse proxy / systemd / PM2 — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) and [docs/HETZNER_DEPLOYMENT_GUIDE.md](docs/HETZNER_DEPLOYMENT_GUIDE.md)
 
-```cron
-# Update distributions and prices daily at 2 AM
-0 2 * * * cd /path/to/ao-tax-tracker-server && yarn update-all
-
-# Or separate jobs
-0 2 * * * cd /path/to/ao-tax-tracker-server && yarn update-distributions
-0 3 * * * cd /path/to/ao-tax-tracker-server && yarn update-prices
-```
+External cron is optional; prefer the built-in scheduler unless you intentionally run jobs out-of-process.
 
 ## Error Handling
 

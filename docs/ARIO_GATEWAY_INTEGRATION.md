@@ -6,21 +6,17 @@ The ARIO gateway action indexers have been successfully integrated into the AO T
 
 ## What Was Added
 
-### 1. New Indexer Files
+### 1. Indexer Files
 
 **Location:** `src/indexers/`
-
-- **`ario_gateway_testnet_indexer.js`** - Indexes all gateway actions from AR.IO testnet
-  - Process ID: `agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA`
-  - Coverage: June 2024 - Feb 2025
-  - Actions indexed: 7,867
-  - **Run once during initial setup**
 
 - **`ario_gateway_mainnet_indexer.js`** - Indexes gateway actions from AR.IO mainnet
   - Process ID: `qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE`
   - Coverage: Feb 2025 - Present
   - Supports date range filtering
-  - **Runs automatically daily**
+  - **Runs automatically daily**; can also be run for a date range CLI backfill
+
+Historical bootstrap can also use the gateway snapshot import flow described in `GATEWAY_SNAPSHOT_README.md`.
 
 ### 2. Database Schema
 
@@ -83,22 +79,15 @@ The built-in cron job (1:00 AM UTC) now runs:
 
 ## Usage
 
-### Initial Setup (One-Time)
+### Initial Setup
 
-Run the testnet indexer to populate historical data:
+Prefer importing a gateway snapshot (see [GATEWAY_SNAPSHOT_README.md](../GATEWAY_SNAPSHOT_README.md)) or backfilling mainnet actions for the dates you need:
 
 ```bash
-# Via API
-curl -X POST http://localhost:3000/api/jobs/index-ario-testnet
-
-# Or directly
-node src/indexers/ario_gateway_testnet_indexer.js
+node src/indexers/ario_gateway_mainnet_indexer.js 2025-01-01 2025-03-01
 ```
 
-**Expected Results:**
-- ~7,867 testnet actions indexed
-- ~6 errors (missing block data - acceptable)
-- Duration: ~5-10 minutes
+An `index-ario-testnet` HTTP job may still exist for legacy setups; the standalone testnet indexer script is not shipped in this public tree. Use mainnet indexing + snapshots for new deployments.
 
 ### Daily Operations
 
@@ -238,34 +227,32 @@ Found 2 actions
 
 ## Next Steps
 
-1. ✅ **Integration Complete** - Indexers added to server
+1. ✅ **Integration Complete** - Mainnet indexer + cron
 2. ✅ **Automated Updates** - Daily cron job configured
 3. ✅ **Documentation** - README and guides updated
-4. ⏳ **Initial Testnet Index** - Run once during deployment
-5. ⏳ **Build State Reconstruction Function** - For ARIO distribution calculator
-6. ⏳ **Integrate with Distribution Calculator** - Use gateway state for accurate calculations
+4. ✅ **Snapshot / backfill path** - Prefer snapshot import or mainnet date-range CLI
+5. ⏳ **State reconstruction helpers** - For ARIO distribution calculator edge cases
 
-## Files Modified
+## Key Files
 
-1. `server.js` - Added ARIO gateway indexing to cron and manual jobs
-2. `README.md` - Added ARIO gateway documentation
-3. `src/indexers/ario_gateway_testnet_indexer.js` - New file (copied)
-4. `src/indexers/ario_gateway_mainnet_indexer.js` - New file (copied)
-5. `ARIO_GATEWAY_INTEGRATION.md` - This file
+1. `server.js` - Cron + job endpoints for gateway indexing
+2. `README.md` - Gateway overview
+3. `src/indexers/ario_gateway_mainnet_indexer.js` - Mainnet indexer
+4. `GATEWAY_SNAPSHOT_README.md` / `admin-utilities/import-gateway-snapshot.js`
+5. `docs/ARIO_GATEWAY_INTEGRATION.md` - This file
 
 ## Deployment Checklist
 
 When deploying to a fresh VPS:
 
 - [ ] Install dependencies (`yarn install`)
+- [ ] Copy `env.example` → `.env` and configure secrets
 - [ ] Configure Cassandra connection
 - [ ] Start server (`yarn start` or use PM2)
-- [ ] Run testnet indexer once: `curl -X POST http://localhost:3000/api/jobs/index-ario-testnet`
-- [ ] Verify testnet data: Check for ~7,867 actions in `ario_gateway_history.gateway_actions`
-- [ ] Wait for first daily cron (1 AM UTC) or manually trigger: `curl -X POST http://localhost:3000/api/jobs/update-all`
-- [ ] Verify mainnet data: Check for actions in `ario_gateway_history.gateway_actions` with `network = 'mainnet'`
+- [ ] Import gateway snapshot and/or backfill mainnet actions for needed dates
+- [ ] Wait for first daily cron (1 AM UTC) or trigger `update-all` with auth headers / CLI
+- [ ] Verify mainnet gateway actions are present
 
 ---
 
-**Last Updated:** October 9, 2025
-**Status:** ✅ Complete and Ready for Deployment
+**Last Updated:** October 31, 2026

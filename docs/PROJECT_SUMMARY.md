@@ -1,43 +1,29 @@
 # AO Tax Tracker Server - Project Summary
 
-## 🎉 Project Created Successfully!
+HTTP API for AO/PI/ARIO distribution income tracking and full Arweave/AO wallet tax reports (cost basis, DEX, multi-currency PDFs/CSVs).
 
-A production-ready HTTP API server for managing AO and PI token distributions with integrated price data and PDF generation capabilities.
+Public repository: https://github.com/Bobinstein/ao-tax-tracker-server-public
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 ao-tax-tracker-server/
-├── config/
-│   └── database.js              # Centralized database configuration
+├── config/                 # Cassandra + AR Tracker constants
+├── data/                   # Runtime CSV dirs (gitignored) + gateway snapshot
 ├── src/
-│   ├── indexers/                # Distribution indexers
-│   │   ├── ao_distribution_indexer_cassandra.js
-│   │   └── pi_distribution_indexer_cassandra.js
-│   ├── fetchers/                # Price data fetchers
-│   │   ├── ao_price_history_fetcher.js      (CoinGecko)
-│   │   ├── permaswap_price_scraper.js       (Permaswap current)
-│   │   └── permaswap_historical_gql_fetcher.js (Permaswap historical)
-│   ├── services/                # Business logic services
-│   │   └── wallet_distribution_pdf_generator.js
-│   └── utils/                   # Utility functions
-│       └── auth.js              # Authorization middleware (placeholder)
-├── jobs/                        # Background job scripts
-│   ├── update-distributions.js
-│   ├── update-prices.js
-│   └── update-all.js
-├── server.js                    # Main HTTP server
-├── package.json                 # Dependencies & scripts
-├── .yarnrc                      # Yarn configuration (ignore-engines)
-├── .gitignore                   # Git ignore rules
-├── env.example                  # Environment variables template
-├── README.md                    # Full API documentation
-├── docs/                        # Additional documentation
-│   ├── QUICKSTART.md            # Quick start guide
-│   ├── DEPLOYMENT.md            # Deployment guide
-│   ├── CRON_INFO.md             # Cron scheduler documentation
-│   ├── ARIO_GATEWAY_INTEGRATION.md # ARIO gateway integration guide
-│   └── PROJECT_SUMMARY.md       # This file
+│   ├── indexers/           # AO, PI, ARIO, PIXL, DEX, gateway
+│   ├── fetchers/           # Token price fetchers + ar-tracker fetchers
+│   ├── services/           # Reports, Stripe, AR Tracker tax pipeline
+│   ├── models/ar-tracker/
+│   ├── middleware/         # Honeypot routes
+│   └── utils/auth.js       # Subscription cache + admin bypass
+├── admin-utilities/
+├── jobs/
+├── scripts/
+├── docs/
+├── env.example
+├── server.js
+└── package.json
 ```
 
 ## 🚀 Features Implemented
@@ -76,8 +62,9 @@ ao-tax-tracker-server/
 
 ### Authorization
 
-- ✅ All endpoints protected with `isAuthorized` middleware
-- ✅ Currently returns `true` (allows all requests)
+- ✅ Protected routes use `isAuthorized` (subscription cache / payment process)
+- ✅ Admin ops via `X-Auth-Bypass` matching `ADMIN_AUTH_BYPASS_CODE`
+- ✅ Service + year scoped (`Distribution Report`, `Full Tax Report`)
 - ✅ Ready for custom implementation in `src/utils/auth.js`
 
 ### Package Management
@@ -150,10 +137,12 @@ ao-tax-tracker-server/
 
 ### Environment Variables (env.example)
 
-- `PORT` - Server port (default: 3000)
-- `API_KEY` - For future auth implementation
-- Cassandra connection overrides
-- CoinGecko API key (optional)
+- `PORT`, `API_BASE_URL`
+- Cassandra host/datacenter overrides
+- `COINGECKO_API_KEY` (optional)
+- `ADMIN_AUTH_BYPASS_CODE`, `PAYMENT_PROCESS_ID`
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (optional)
+- `MESSAGE_KEY_FILE` (optional AO signing wallet)
 
 ## 📝 Documentation
 
@@ -173,15 +162,17 @@ ao-tax-tracker-server/
 - Troubleshooting
 - Production deployment
 
-## 🚦 Getting Started
+## Getting Started
 
 ```bash
-cd ao-tax-tracker-server
+git clone https://github.com/Bobinstein/ao-tax-tracker-server-public.git
+cd ao-tax-tracker-server-public
 yarn install
+cp env.example .env
 yarn start
 ```
 
-Server will be available at `http://localhost:3000`
+Server will be available at `http://localhost:3000`. See [QUICKSTART.md](QUICKSTART.md).
 
 ## 🔄 Updating Data
 
@@ -195,9 +186,7 @@ yarn update-prices        # Prices only
 
 ### Via API
 
-```bash
-curl -X POST http://localhost:3000/api/jobs/update-all
-```
+Requires auth headers (subscription or `X-Auth-Bypass` + `X-Year`). See [scripts/CURL-TEST-COMMANDS.md](../scripts/CURL-TEST-COMMANDS.md).
 
 ### Scheduled (Cron)
 

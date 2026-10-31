@@ -53,9 +53,10 @@ yarn --version
 
 ```bash
 cd /opt  # or wherever you want to deploy
-git clone <your-repo-url> ao-tax-tracker-server
+git clone https://github.com/Bobinstein/ao-tax-tracker-server-public.git ao-tax-tracker-server
 cd ao-tax-tracker-server
 ```
+
 
 ### 4. Install Dependencies
 
@@ -464,31 +465,39 @@ cd /opt/ao-tax-tracker-server && /usr/bin/yarn update-all
 
 ## Environment Variables
 
-Create a `.env` file for configuration:
+Copy `env.example` and configure:
 
 ```bash
-# Server
+cp env.example .env
+```
+
+Important variables (see `env.example` for the full set):
+
+```bash
 PORT=3000
+API_BASE_URL=http://localhost:3000
 
 # Cassandra (optional overrides)
 CASSANDRA_HOST=localhost
 CASSANDRA_DATACENTER=datacenter1
 
-# API Keys
+# Optional API / payments
 COINGECKO_API_KEY=your-coingecko-api-key
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Authorization
 PAYMENT_PROCESS_ID=your-payment-process-id    # AO process for subscription checks
-ADMIN_AUTH_BYPASS_CODE=your-secret-code       # Admin bypass for testing (optional)
+ADMIN_AUTH_BYPASS_CODE=your-strong-random-secret
 
-# Message signing (for AO interactions)
-MESSAGE_KEY_FILE=base64-encoded-wallet-json   # Arweave wallet for signing messages
+# Message signing (for AO Manual-Subscribe / Stripe flow)
+MESSAGE_KEY_FILE=./path/to/wallet.json
 ```
 
 **Security Notes:**
 - Never commit `.env` to version control
-- Use strong, unique values for `ADMIN_AUTH_BYPASS_CODE`
-- Keep `MESSAGE_KEY_FILE` secure - it's your wallet private key
+- Use a long, unique value for `ADMIN_AUTH_BYPASS_CODE` in any shared or production environment
+- Keep `MESSAGE_KEY_FILE` and Stripe secrets offline and out of git
 
 ## AR Tracker: Full Wallet Tax Reports
 
