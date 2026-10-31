@@ -1,0 +1,29 @@
+node_modules/
+package-lock.json
+*.log
+logs/
+.env
+*.pdf
+temp/
+.DS_Store
+yarn-error.log
+nohup.out
+reports/*
+
+# Keep CSV data for bootstrapping
+!data/AO_csvs/**/*.csv
+!data/PI_csvs/**/*.csv
+
+# CSV data files (downloaded at runtime)
+data/AO_csvs/*
+!data/AO_csvs/.gitkeep
+data/PI_csvs/*
+!data/PI_csvs/.gitkeep
+
+# Backup files
+backups/
+
+# Test coverage
+coverage/
+*HANDOFF*.md
+*.pdf
